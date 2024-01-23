@@ -2,18 +2,17 @@ import argparse
 import os
 
 import torch
-import yaml
 import torch.nn as nn
+import yaml
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from utils.model import get_model, get_vocoder, get_param_num
-from utils.tools import to_device, log, synth_one_sample
-from model import FastSpeech2Loss
 from dataset import Dataset
-
 from evaluate import evaluate
+from model import FastSpeech2Loss
+from utils.model import get_model, get_param_num, get_vocoder
+from utils.tools import log, synth_one_sample, to_device
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -28,12 +27,9 @@ def main(args, configs):
         "train.txt", preprocess_config, train_config, sort=True, drop_last=True
     )
     batch_size = train_config["optimizer"]["batch_size"]
-    group_size = 4  # Set this larger than 1 to enable sorting in Dataset
-    assert batch_size * group_size < len(dataset)
     loader = DataLoader(
         dataset,
-        batch_size=batch_size * group_size,
-        shuffle=True,
+        batch_size=batch_size,
         collate_fn=dataset.collate_fn,
     )
 
@@ -73,8 +69,7 @@ def main(args, configs):
     outer_bar.update()
 
     while True:
-        inner_bar = tqdm(total=len(loader), desc="Epoch {}".format(epoch), position=1)
-        for batchs in loader:
+        for batchs in tqdm(loader, desc="Epoch: {}".format(epoch), position=1):
             for batch in batchs:
                 batch = to_device(batch, device)
 
@@ -144,7 +139,7 @@ def main(args, configs):
                     message = evaluate(model, step, configs, val_logger, vocoder)
                     with open(os.path.join(val_log_path, "log.txt"), "a") as f:
                         f.write(message + "\n")
-                    outer_bar.write(message)
+                    # outer_bar.write(message)
 
                     model.train()
 
@@ -163,9 +158,8 @@ def main(args, configs):
                 if step == total_step:
                     quit()
                 step += 1
-                outer_bar.update(1)
 
-            inner_bar.update(1)
+            outer_bar.update(1)
         epoch += 1
 
 
