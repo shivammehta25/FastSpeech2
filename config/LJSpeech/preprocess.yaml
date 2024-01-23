@@ -4,7 +4,7 @@ path:
   corpus_path: "data/LJSpeech-1.1"
   lexicon_path: "lexicon/librispeech-lexicon.txt"
   raw_path: "./raw_data/LJSpeech"
-  preprocessed_ppython3 prepare_align.py config/LJSpeech/preprocess.yamlath: "./preprocessed_data/LJSpeech"
+  preprocessed_path: "./preprocessed_data/LJSpeech"
 
 preprocessing:
   val_size: 512

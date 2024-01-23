@@ -1,11 +1,11 @@
+import json
 import os
 import random
-import json
 
-import tgt
 import librosa
 import numpy as np
 import pyworld as pw
+import tgt
 from scipy.interpolate import interp1d
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
@@ -151,6 +151,40 @@ class Preprocessor:
                 f.write(m + "\n")
 
         return out
+    
+    
+    def update_filelistsby_split(self):
+        print("Updating filelists by the provided split ...")
+        if not (os.path.exists(os.path.join(self.out_dir, "train_split.txt")) or os.path.exists(os.path.join(self.out_dir, "val_split.txt"))):
+            print("No split file found, skip updating filelists by split")
+            return 
+        train_set = self.load_sets(os.path.join(self.out_dir, "train_split.txt"))
+        val_set = self.load_sets(os.path.join(self.out_dir, "val_split.txt"))
+        
+        all_data = []
+     
+        with open(os.path.join(self.out_dir, "train.txt"), "r", encoding="utf-8") as f:
+            all_data.extend(f.readlines())
+        with open(os.path.join(self.out_dir, "val.txt"), "r", encoding="utf-8") as f:
+            all_data.extend(f.readlines())
+            
+        os.rename(os.path.join(self.out_dir, "train.txt"), os.path.join(self.out_dir, "train.txt.bak"))
+        os.rename(os.path.join(self.out_dir, "val.txt"), os.path.join(self.out_dir, "val.txt.bak"))
+    
+        with open(os.path.join(self.out_dir, "train.txt"), "a", encoding="utf-8") as t_f, open(os.path.join(self.out_dir, "val.txt"), "a", encoding="utf-8") as v_f:
+            for r in tqdm(all_data):
+                basename = r.split("|")[0]
+                if basename in train_set:
+                    t_f.write(r)
+                elif basename in val_set:
+                    v_f.write(r)
+                else:
+                    print("Error: {} not in train or val set".format(basename))
+            
+    def load_sets(self, path):
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        return set([l.split(".")[0].strip() for l in lines])
 
     def process_utterance(self, speaker, basename):
         wav_path = os.path.join(self.in_dir, speaker, "{}.wav".format(basename))
